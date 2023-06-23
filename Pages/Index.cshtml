@@ -1,0 +1,56 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+
+<div class="vh-100">
+    <h1 class="display-4">Welcome to Quick Chats</h1>
+
+    <div class="container d-flex flex-column h-75">
+        <div class="container border border-1 flex-grow-1" id="chatHistories">
+            @foreach (var chat in Model.Chats)
+            {
+                <p id="chat-@chat.Id">@chat.Sender: @chat.Message</p>
+            }
+        </div>
+
+        <form class="d-flex mt-2" id="chatForm">
+            <input class="form-control me-2" id="chatSender" value="" placeholder="Sender" required/>
+            <input class="form-control me-2" id="chatMessage" value="" placeholder="Message" required/>
+            <button class="btn btn-sm btn-primary">Send</button>
+        </form>
+    </div>
+</div>
+
+<script src="~/lib/signalr/signalr.js"></script>
+
+<script>
+"use strict";
+
+const connection = new signalR.HubConnectionBuilder().withUrl("/chat-hub").build();
+
+connection.on("receive", (id, sender, message) => {
+    const oldChat = document.getElementById("chat-" + id);
+    
+    if (oldChat) {
+        oldChat.innerText = sender + ": " + message;
+    } else {
+        const chat = document.createElement("p");
+        chat.id = "chat-" + id;
+        chat.innerText = sender + ": " + message;
+        document.getElementById("chatHistories").appendChild(chat);
+    }
+});
+
+connection.start().then(() => {
+    document.getElementById("chatForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const sender = document.getElementById("chatSender").value;
+        const message = document.getElementById("chatMessage").value;
+        connection.invoke("send", sender, message);
+    });
+}).catch(error => {
+    console.error(error.message);
+});
+</script>
